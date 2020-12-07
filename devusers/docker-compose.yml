@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+  db:
+    image: zenoteam/taxiusersbackend_db:master
+    environment:
+      - POSTGRES_DB=oastations
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=somepassword
+      - POSTGRES_PORT=5432 #use an encrpted ebviroment variable for production deployment
+    ports:
+      - "5432:5432"
+
+  server:
+    env_file: ../environment.env
+    image: zenoteam/taxiusers_server:master
+    ports:
+      - "8001:8000"
+    depends_on:
+      - db
+volumes:
+  taxiusersservice:

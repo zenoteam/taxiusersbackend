@@ -1,0 +1,41 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: taxiusers-backend
+    labels:
+        app: taxiusers-backend
+    namespace: example
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: taxiusers-backend
+    template:
+        metadata:
+            labels:
+                app: taxiusers-backend
+        spec:
+            containers:
+                - name: taxiusers-backend-service
+                  image: taxiusers_server:latest
+                  imagePullPolicy: Never
+                  ports:
+                     - containerPort: 8000
+                  env:
+                      - name: DATABASE_ENGINE
+                        value: POSTGRESQL
+                      - name: POSTGRES_DB
+                        value: taxiusers
+                      - name: POSTGRES_USER
+                        value: postgres
+                      - name: POSTGRES_PASSWORD
+                        value: somepassword
+                      - name: POSTGRES_PORT
+                        value: "5432"
+                      - name: POSTGRES_HOST
+                        value: "127.0.0.1"
+
+                - name: taxiusers-backend-db
+                  image: taxiusers_backend_db:latest
+                  imagePullPolicy: Never

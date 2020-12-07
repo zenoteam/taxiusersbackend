@@ -1,0 +1,72 @@
+services:
+- docker
+env:
+  global:
+  - DOCKER_COMPOSE_VERSION=1.23.2
+  - secure: AceqHO5jDqfYwoKI164H5Hn9NunLOgHAw2ui68/+hq439YDJveETZX6FrL4n/us0sy2PZxiRpiPUCW7NXzvtQOF6c8qiBogBCkk4turYnRQhJckmCWl5zKQCInMsWcxdU+sNqJsmqf37vjygctj/gVh567xoM2LicaenDkJ3Sc/VFhX3DWYTX+xDye+RZ/c9wyPsokm81nbEsVeqVslM1ZrAGKCSDfOgZaOfPFV9gzVq4/3yc3EJ8YQBtBCozN3YuzTrYB9CQUOUpdF7uXcCXonMJA3uF0RUEEuG/jP7chjwMPwKxy+P8skirGbNTyr4k3aF6tF9HRsvucJq/MZ7HqBirGcFFh8V4tCBuNG9zysUxKwBWdI4SKKLJqJXsenh5sr09shgDjE8KYb/4HP8sGJSzkq8cxtXH56BNjIZXBWb2dFdhvyW6mWWKnXO8e2bTnmXGcAXhN+R9X46HW4cQgvfT0wqJaveyssBqvk5gw+ao0m4kE8MLnd7y20SsVtwzlbbNWo/fE6q7cmYUhJmw0B6pYm+vcnPgOI98Qx+vL7ZMYYmHAXssiI8SV58RsPT82HujRwbzEuD6C07scNSoU32mzCCcay6s558S/qXUommwG4+tPm5rx8TyHLfNOAedYO3UlspJZ8R41iKZwys9LqEQmry+f6IaDjAAPhDoXQ=
+  - secure: SssZMs8O1sr29vwL3/PwQKfoDWyZpt2NveTrm/pj0sa7NcRi1hNhC3lkJR+bcFPBPbo8ors7JHDtJBsK54CbVQgXQxV8Bh3VjGBHgAzDDsXchAyigA0JAgpeMGO0ZwEnZ4lwdyYDBsVaLEq0jJom9HJN8LAQ9UCrSlBMaRlU7H/F7M288azrOJde3wW4Bql1kNdCoO6YtOTTw0TyoWyfn+Aml0+1OJhb7ls8PQXU9EgLptj9Jn4BzKiRz92fvugFFR2fKjTEPV8s5bhIycRV7VhBOzb1Dq6bW7nENB8CqBJzR08weRB4zZ7n4+SvmKHClzGPkN+N5iLbES2dgHMGwD8tXJg3JB3jLn9eJqkvvGfXtUYZGan0w5cnPAzjA4f4F/GVxEnKSVwgg0w2TYXQSpnbTqYivcqm+oYR5CaIWc2rfebrqlht3ul2Mx98JueVSeDTaOGe/o27W9CZXe5b/+53nQ7LB/rWmgdXUiWzscfGVsDfBm04gPKBf0GnXew0a4sUPtLfmDGBkyeDvpbX7Wpp0z4frfX+Bvkxb7577VMPU0TLB/+VsrkdqLxEUOa7LA8TPXJXeOLDWZF1Bgh1hQPicYUBTu6CHZL0ITAw1D5PZlSryifPzghU87zpDG8NYuz4xVdajDhYwV/x1t7o7mu8ELxviFifO2oTcmmoGWU=
+before_install:
+- sudo rm /usr/local/bin/docker-compose
+- curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname
+  -s`-`uname -m` > docker-compose
+- chmod +x docker-compose
+- sudo mv docker-compose /usr/local/bin
+- docker --version
+- docker-compose version
+- echo "Login into Docker Hub"
+- echo "$WORD" | docker login -u "$NAME" --password-stdin
+- export GIT_SHA=`git rev-parse --short HEAD`
+- echo "Building commit $GIT_SHA"
+jobs:
+  include:
+  - stage: tests
+    name: Unit Tests
+    script:
+    - docker-compose build db
+    - docker-compose build test-postgresql
+    - docker-compose run test-postgresql
+  - stage: tests
+    name: Static Analysis
+    script:
+    - docker-compose build static-analysis
+    - docker-compose run static-analysis
+  - stage: push
+    script:
+    - docker-compose build server
+    - docker tag users_server:latest zenoteam/users_server:$GIT_SHA
+    - docker push zenoteam/users_server:$GIT_SHA
+    - docker tag users_server:latest zenoteam/users_server:$TRAVIS_BRANCH
+    deploy:
+    - provider: script
+      script: docker push zenoteam/users_server:$TRAVIS_BRANCH
+      on:
+        branch: master
+    - provider: script
+      script: docker push zenoteam/users_server:$TRAVIS_TAG
+      on:
+        tags: true
+  - stage: pushdb
+    script:
+    - docker-compose build
+    - docker tag usersbackend_db:latest zenoteam/usersbackend_db:$GIT_SHA
+    - docker push zenoteam/usersbackend_db:$GIT_SHA
+    - docker tag usersbackend_db:latest zenoteam/usersbackend_db:$TRAVIS_BRANCH
+    deploy:
+    - provider: script
+      script: docker push zenoteam/usersbackend_db:$TRAVIS_BRANCH
+      on:
+        branch: master
+    - provider: script
+      script: docker push zenoteam/usersbackend_db:$TRAVIS_TAG
+      on:
+        tags: true
+notifications:
+  slack:
+    rooms:
+      - secure: "DNfUmHyxNg6XF4ARuLwo86W/+Y+6D1HewrR9h9siHYpvFO36vIybCKys6/6te25WgfzxK86P1xGkvrajtDvbRXColKYSsAKoy/S90ON247sqiH623vlygCtfZBBQxYlfm9BeX/wF1XI3B8jTbuz54IGSagPVU/FUGoXVJot9EKQajLgQf+0zP7KC+xawRHUrSIMiU4AU/hUcSQ0BR3GM3hiKeaUa8ub/NT5rOI8hxRHQXFDAaLsSSVooEKM1XbXhtEI2U4LaSRBjkuvXO0uvWMsfbQag+KJGR+8VusEM5bn2DkJ+I5awqemRNHtfb3269R2abc2tfaB0WC7+aOho9PXtp71gsvdkIUvS103tbNYNVbKbNrPI9eoEbAh0vYw6LYgZoE7aLRGkaGPsu8S3cgjewfx68sCwu3Qo8YBZc+YqrgrN8yYRZvh/0QcxgZYApZINRhAiF6ZPw3uOCP25gfBcrF0BBoC1x3mi7t0631sEckWL0CO6mHIvuwAiP/Xi72sTEymj/4ZQHsZeHUsOtl+23dPBEjvJ6LAQqGuk9ObomVPKaxq/KUBT3V8NnHuNPu8Vkl9ocQ5+k8eyWY+Xlloxm0il/47csulO7HFrFG2kVh1uxNBRyUBndzKGVKcp5Q6wT1O7fxnG9upHVLpkCLoieALT33Ip1tr583dROLo="
+    on_success: always
+    on_pull_requests: true
+    on_failure: always
+    on_start: change
+    on_cancel: always
+    on_error: always

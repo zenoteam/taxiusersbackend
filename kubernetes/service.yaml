@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+    namespace: example
+    labels:
+        app: taxiusers-service
+    name: taxiusers-service
+spec:
+    ports:
+        - name: taxiusers-backend
+          port: 80
+          targetPort: 8000
+    selector:
+        app: taxiusers-backend
+    type: NodePort
