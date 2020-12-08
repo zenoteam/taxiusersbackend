@@ -32,6 +32,10 @@ WORKDIR /opt/code
 RUN mkdir -p /opt/code/db
 # Add postgres setup
 ADD ./docker/db/postgres-setup.sh /opt/code/db/
+
+# Make all the file executable
+RUN chmod +x /opt/code/db/postgres-setup.sh
+
 RUN  /opt/code/db/postgres-setup.sh
 
 ## Install our code to prepare the DB
@@ -43,6 +47,9 @@ RUN pip3 install -r requirements.txt
 ADD ./TaxiusersBackend/ /opt/code/
 # Add all DB commanda
 ADD ./docker/db/* /opt/code/db/
+
+# Make all the files in the folder executable
+RUN chmod +x /opt/code/db/*.sh
 
 ## get the db ready
 RUN /opt/code/db/prepare_db.sh
