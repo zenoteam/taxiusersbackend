@@ -3,6 +3,7 @@ version: '3'
 services:
     # Development related
     test-sqlite:
+        env_file: environment2.env
         environment:
             - PYTHONDONTWRITEBYTECODE=1
         build:
@@ -73,6 +74,9 @@ services:
                 - POSTGRES_PORT=5432
         ports:
             - "5432:5432"
+    
+    redis:
+        image: redis
 
     server:
         env_file: environment.env
