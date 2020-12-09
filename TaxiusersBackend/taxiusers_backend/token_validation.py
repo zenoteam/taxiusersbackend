@@ -1,9 +1,39 @@
+import os
 import jwt
+import redis
 from parse import parse
 from datetime import datetime, timedelta
 
 import logging
+
 logger = logging.getLogger(__name__)
+
+REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
+REDIS_DB = os.environ.get('REDIS_DB', 0)
+
+# redis connection for storing the blacklisted tokens
+blacklistStore = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
+
+
+def blacklist_token(payload):
+    """
+    store token jti value in redis
+    """
+    expTime = payload['exp'] - int(datetime.utcnow().timestamp())
+    blacklistStore.set('blacklist:{}'.format(payload['jti']), payload['jti'], expTime)
+    return is_token_blacklisted(payload)
+
+
+def is_token_blacklisted(payload):
+    """
+    check if jti value is stored redis i.e. token has been blacklisted
+    """
+    jti = payload['jti']
+    if blacklistStore.get('blacklist:'+jti):
+        return True
+    else:
+        return False
 
 
 def encode_token(payload, private_key):
@@ -15,13 +45,14 @@ def decode_token(token, public_key):
 
 
 def generate_token_header(username, private_key):
-    '''
+    """
     Generate a token header base on the username. Sign using the private key.
-    '''
+    """
     payload = {
         'username': username,
         'iat': datetime.utcnow(),
         'exp': datetime.utcnow() + timedelta(days=2),
+        'jti': '{0}{1}'.format(username, int(datetime.utcnow().timestamp()))
     }
     token = encode_token(payload, private_key)
     token = token.decode('utf8')
@@ -29,12 +60,12 @@ def generate_token_header(username, private_key):
 
 
 def validate_token_header(header, public_key):
-    '''
+    """
     Validate that a token header is correct
 
-    If correct, it return the username, if not, it
+    If correct, it returns the payload, if not, it
     returns None
-    '''
+    """
     if not header:
         logger.info('No header')
         return None
@@ -49,7 +80,7 @@ def validate_token_header(header, public_key):
         decoded_token = decode_token(token.encode('utf8'), public_key)
     except jwt.exceptions.DecodeError:
         logger.warning(f'Error decoding header "{header}". '
-                       'This may be key missmatch or wrong key')
+                       'This may be key mismatch or wrong key')
         return None
     except jwt.exceptions.ExpiredSignatureError:
         logger.error(f'Authentication header has expired')
@@ -65,5 +96,10 @@ def validate_token_header(header, public_key):
         logger.warning('Token does not have username')
         return None
 
+    # Check if token has been blacklisted
+    if is_token_blacklisted(decoded_token):
+        logger.error(f'Token has been blacklisted')
+        return None
+
     logger.info('Header successfully validated')
-    return decoded_token['username']
+    return decoded_token

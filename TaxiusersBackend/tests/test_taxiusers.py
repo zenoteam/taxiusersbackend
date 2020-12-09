@@ -1,6 +1,6 @@
-'''
+"""
 Test the User operations
-'''
+"""
 from unittest.mock import ANY
 import http.client
 from freezegun import freeze_time
@@ -46,6 +46,56 @@ def test_login(client):
         'Authorized': ANY,
     }
     assert result == expected
+
+
+def test_verify(client):
+    USERNAME = fake.name()
+    PASSWORD = fake.password(length=15, special_chars=True)
+    new_user = {
+        'username': USERNAME,
+        'password': PASSWORD,
+    }
+    response = client.post('/admin/users/', data=new_user)
+    assert http.client.CREATED == response.status_code
+
+    response = client.post('/api/login/', data=new_user)
+    result = response.json
+    assert http.client.OK == response.status_code
+
+    expected = {
+        'Authorized': ANY,
+    }
+    assert result == expected
+    headers = {
+        'Authorization': result['Authorized']
+    }
+    response = client.get('/api/verify/', headers=headers)
+    assert http.client.OK == response.status_code
+
+
+def test_logout(client):
+    USERNAME = fake.name()
+    PASSWORD = fake.password(length=15, special_chars=True)
+    new_user = {
+        'username': USERNAME,
+        'password': PASSWORD,
+    }
+    response = client.post('/admin/users/', data=new_user)
+    assert http.client.CREATED == response.status_code
+
+    response = client.post('/api/login/', data=new_user)
+    result = response.json
+    assert http.client.OK == response.status_code
+
+    expected = {
+        'Authorized': ANY,
+    }
+    assert result == expected
+    headers = {
+        'Authorization': result['Authorized']
+    }
+    response = client.post('/api/logout/', headers=headers)
+    assert http.client.OK == response.status_code
 
 
 def test_wrong_password(client):

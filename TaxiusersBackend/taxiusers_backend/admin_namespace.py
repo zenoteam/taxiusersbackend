@@ -25,18 +25,20 @@ class UserCreate(Resource):
     @admin_namespace.expect(user_parser)
     @admin_namespace.marshal_with(user_model, code=http.client.CREATED)
     def post(self):
-        '''
+        """
         Create a new user
-        '''
+        """
         args = user_parser.parse_args()
         # password = args['password']
         """# Hash and Salt Password
         password_hash = bcrypt.generate_password_hash(password)\
             .decode('UTF-8')"""
 
-        new_user = UserModel(username=args['username'],
-                             password=args['password'],
-                             creation=datetime.utcnow())
+        new_user = UserModel(
+            username=args['username'],
+            password=args['password'],
+            creation=datetime.utcnow()
+        )
         db.session.add(new_user)
         try:
             db.session.commit()
