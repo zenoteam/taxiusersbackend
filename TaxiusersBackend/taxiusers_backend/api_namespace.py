@@ -108,7 +108,7 @@ class UserLogout(Resource):
         payload = authentication_header_parser(args['Authorization'])
 
         if blacklist_token(payload):
-            return http.client.OK
+            return http.client.NO_CONTENT
         return http.client.INTERNAL_SERVER_ERROR
 
 

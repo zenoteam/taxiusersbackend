@@ -8,12 +8,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
-REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
-REDIS_DB = os.environ.get('REDIS_DB', 0)
+REDIS_URI = os.environ.get('REDIS_URI', 'redis://localhost:6379/0')
 
 # redis connection for storing the blacklisted tokens
-blacklistStore = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
+blacklistStore = redis.StrictRedis.from_url(REDIS_URI, decode_responses=True)
 
 
 def blacklist_token(payload):
