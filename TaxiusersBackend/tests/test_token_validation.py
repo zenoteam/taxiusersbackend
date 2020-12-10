@@ -90,4 +90,4 @@ def test_valid_token_header_invalid_key():
 def test_valid_token_header():
     header = token_validation.generate_token_header('tonystark', PRIVATE_KEY)
     result = token_validation.validate_token_header(header, PUBLIC_KEY)
-    assert 'tonystark' == result
+    assert 'tonystark' == result['username']
