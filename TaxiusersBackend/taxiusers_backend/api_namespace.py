@@ -200,7 +200,7 @@ dateQuery_parser.add_argument('enddate',
                               help="The end date format '%d/%m/%Y'")
 
 
-@api_namespace.route('/datequery/')
+@api_namespace.route('/stat/datequery/')
 class UsersDateQuery(Resource):
     @api_namespace.doc('query count in db')
     @api_namespace.expect(dateQuery_parser)
@@ -234,7 +234,7 @@ class UsersDateQuery(Resource):
         return result
 
 
-@api_namespace.route('/sumquery/')
+@api_namespace.route('/stat/sumquery/')
 class UsersSummaryQuery(Resource):
     @api_namespace.doc('query count in db')
     @api_namespace.expect(authentication_parser)
@@ -258,7 +258,7 @@ monthQuery_parser.add_argument(
 )
 
 
-@api_namespace.route('/monthquery/')
+@api_namespace.route('/stat/monthquery/')
 class UsersMonthQuery(Resource):
     @api_namespace.doc('query count in db')
     @api_namespace.expect(monthQuery_parser)
