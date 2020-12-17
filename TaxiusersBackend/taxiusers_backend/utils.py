@@ -1,8 +1,10 @@
 import os
 import requests
 
-EMAIL_URL = os.environ.get('LAST_SEEN_ENDPOINT',
-                           'http://localhost:5001/api/lastseen/')
+EMAIL_URL = os.environ.get(
+    'LAST_SEEN_ENDPOINT',
+    'http://localhost:5001/api/lastseen/'
+)
 
 
 def update_last_seen(authorization):

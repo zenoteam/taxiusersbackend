@@ -1,6 +1,6 @@
 import delorean
 from freezegun import freeze_time
-from taxiusers_backend import token_validation
+from taxiusers_backend import token as token_validation
 from .constants import PRIVATE_KEY, PUBLIC_KEY
 
 INVALID_PUBLIC_KEY = '''
@@ -82,12 +82,18 @@ def test_invalid_token_header_no_username():
 
 
 def test_valid_token_header_invalid_key():
-    header = token_validation.generate_token_header('tonystark', PRIVATE_KEY)
+    payload = {
+        'id': 1
+    }
+    header = token_validation.generate_token_header(payload, PRIVATE_KEY)
     result = token_validation.validate_token_header(header, INVALID_PUBLIC_KEY)
     assert None is result
 
 
 def test_valid_token_header():
-    header = token_validation.generate_token_header('tonystark', PRIVATE_KEY)
+    payload = {
+        'id': 1
+    }
+    header = token_validation.generate_token_header(payload, PRIVATE_KEY)
     result = token_validation.validate_token_header(header, PUBLIC_KEY)
-    assert 'tonystark' == result['username']
+    assert payload['id'] == result['id']

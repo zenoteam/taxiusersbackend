@@ -8,14 +8,20 @@ if __name__ == '__main__':
 
     # Create some test data
     test_data = [
-        # username, timestamp, text
-        ('bruce', "bruce", datetime.now()),
-        ('stephen', "stephen", datetime.now()),
+        # super admin user
+        ('bruce', "bruce", 1, datetime.now()),
+        # admin user
+        ('esther', "esther", 2, datetime.now()),
+        # normal user
+        ('stephen', "stephen", 0, datetime.now()),
     ]
-    for username, password, creation in test_data:
-        user = UserModel(username=username,
-                         password=password,
-                         creation=creation)
+    for username, password, admin, creation in test_data:
+        user = UserModel(
+            username=username,
+            password=password,
+            admin=admin,
+            creation=creation
+        )
         application.db.session.add(user)
 
     application.db.session.commit()

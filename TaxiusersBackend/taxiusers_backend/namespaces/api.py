@@ -1,17 +1,15 @@
 import http.client
+import requests
 from datetime import datetime, timedelta
 
 from flask import abort
 from flask_restplus import Namespace, Resource
-from parse import parse
 from sqlalchemy import func
 
 from taxiusers_backend import config
 from taxiusers_backend.db import db
 from taxiusers_backend.models import UserModel, bcrypt
-from taxiusers_backend.token_validation import generate_token_header
-from taxiusers_backend.token_validation import validate_token_header, decode_token, is_token_blacklisted, \
-    blacklist_token
+from taxiusers_backend.token import generate_token_header, validate_token_header, blacklist_token
 from taxiusers_backend.utils import update_last_seen
 
 api_namespace = Namespace('api', description='API operations')
@@ -52,8 +50,11 @@ class UserLogin(Resource):
         args = login_parser.parse_args()
 
         # Search for the user
-        user = (UserModel.query.filter(
-            UserModel.username == args['username']).first())
+        user = (
+            UserModel.query.filter(
+                UserModel.username == args['username']
+            ).first()
+        )
         if not user:
             return '', http.client.UNAUTHORIZED
 
@@ -65,10 +66,17 @@ class UserLogin(Resource):
             return '', http.client.UNAUTHORIZED
 
         # Generate the header
-        header = generate_token_header(user.username, config.PRIVATE_KEY)
+        tokenPayload = {'id': user.id}
+        if user.admin == 1 or user.admin == 2:
+            tokenPayload['admin'] = user.admin
+        header = generate_token_header(tokenPayload, config.PRIVATE_KEY)
 
         # Update user last seen at
-        update_last_seen(header)
+        try:
+            update_last_seen(header)
+        except requests.exceptions.ConnectionError:
+            pass
+            # return 'unable to connect to user detail server', http.client.INTERNAL_SERVER_ERROR
 
         return {'Authorized': header}, http.client.OK
 
@@ -82,16 +90,12 @@ class UserVerify(Resource):
         Verifies user token
         """
         args = authentication_parser.parse_args()
-        # Retrieve the Bearer token
-        parse_result = parse('Bearer {}', args['Authorization'])
-        if not parse_result:
-            return http.client.BAD_REQUEST
-        token = parse_result[0]
 
-        payload = decode_token(token, config.PUBLIC_KEY)
+        # get payload from bearer token
+        payload = authentication_header_parser(args['Authorization'])
 
-        if is_token_blacklisted(payload):
-            return http.client.BAD_REQUEST
+        if not payload:
+            return '', http.client.UNAUTHORIZED
 
         return payload
 
@@ -127,20 +131,20 @@ change_pw_parser.add_argument(
 )
 
 
-@api_namespace.route('/change/')
-class ChangePw(Resource):
-    @api_namespace.doc('change password')
+@api_namespace.route('/password/change/')
+class ChangePwd(Resource):
+    @api_namespace.doc('change_password')
     @api_namespace.expect(change_pw_parser)
     def post(self):
         """
         Change a user password
         """
         args = change_pw_parser.parse_args()
-        username = authentication_header_parser(args['Authorization'])['username']
+        userId = authentication_header_parser(args['Authorization'])['id']
         old_password = args['old_password']
 
         # Get user
-        user = (UserModel.query.filter(UserModel.username == username).one())
+        user = (UserModel.query.filter(UserModel.id == userId).one())
 
         auth_user = bcrypt.check_password_hash(user.password, old_password)
 
@@ -148,7 +152,9 @@ class ChangePw(Resource):
             return '', http.client.UNAUTHORIZED
 
         user.password = bcrypt.generate_password_hash(
-            args['new_password']).decode('UTF-8')
+            args['new_password']
+        ).decode('UTF-8')
+
         db.session.add(user)
         db.session.commit()
 
@@ -156,33 +162,50 @@ class ChangePw(Resource):
 
 
 update_pw_parser = authentication_parser.copy()
-update_pw_parser.add_argument('username',
-                              type=str,
-                              required=True,
-                              help='username')
-update_pw_parser.add_argument('new_password',
-                              type=str,
-                              required=True,
-                              help='new password')
+update_pw_parser.add_argument(
+    'userId',
+    type=int,
+    required=True,
+    help='The user Id'
+)
+update_pw_parser.add_argument(
+    'new_password',
+    type=str,
+    required=True,
+    help='The new password'
+)
 
 
-@api_namespace.route('/update/')
-class UpdatePw(Resource):
-    @api_namespace.doc('change password')
+@api_namespace.route('/password/update/')
+class UpdatePwd(Resource):
+    @api_namespace.doc('update_password')
     @api_namespace.expect(update_pw_parser)
     def post(self):
         """
-        Change a user password
+        Update a user's password, endpoint only accessible by (super) admin
         """
-
         args = update_pw_parser.parse_args()
-        authentication_header_parser(args['Authorization'])
+        payload = authentication_header_parser(args['Authorization'])
+
+        # check that user is an admin
+        if 'admin' not in payload:
+            return '', http.client.FORBIDDEN
 
         # Get user
-        user = (UserModel.query.filter(
-            UserModel.username == args['username']).one())
+        user = (
+            UserModel.query.filter(
+                UserModel.id == args['userId']
+            ).one()
+        )
+
+        # check if the user who's password is about to be updated is a super admin
+        # if user.admin == 1:
+        #     return '', http.client.FORBIDDEN
+
         user.password = bcrypt.generate_password_hash(
-            args['new_password']).decode('UTF-8')
+            args['new_password']
+        ).decode('UTF-8')
+
         db.session.add(user)
         db.session.commit()
 
@@ -190,19 +213,23 @@ class UpdatePw(Resource):
 
 
 dateQuery_parser = authentication_parser.copy()
-dateQuery_parser.add_argument('startdate',
-                              type=str,
-                              required=True,
-                              help="The start date format '%d/%m/%Y'")
-dateQuery_parser.add_argument('enddate',
-                              type=str,
-                              required=True,
-                              help="The end date format '%d/%m/%Y'")
+dateQuery_parser.add_argument(
+    "startdate",
+    type=str,
+    required=True,
+    help="The start date format '%d/%m/%Y'"
+)
+dateQuery_parser.add_argument(
+    'enddate',
+    type=str,
+    required=True,
+    help="The end date format '%d/%m/%Y'"
+)
 
 
 @api_namespace.route('/stat/datequery/')
 class UsersDateQuery(Resource):
-    @api_namespace.doc('query count in db')
+    @api_namespace.doc('query count in db: daily')
     @api_namespace.expect(dateQuery_parser)
     def get(self):
         """
@@ -234,21 +261,6 @@ class UsersDateQuery(Resource):
         return result
 
 
-@api_namespace.route('/stat/sumquery/')
-class UsersSummaryQuery(Resource):
-    @api_namespace.doc('query count in db')
-    @api_namespace.expect(authentication_parser)
-    def get(self):
-        """
-        Help find the sum of records in database
-        """
-        args = authentication_parser.parse_args()
-        authentication_header_parser(args['Authorization'])
-        user = (UserModel.query.count())
-
-        return user
-
-
 monthQuery_parser = authentication_parser.copy()
 monthQuery_parser.add_argument(
     'year',
@@ -260,7 +272,7 @@ monthQuery_parser.add_argument(
 
 @api_namespace.route('/stat/monthquery/')
 class UsersMonthQuery(Resource):
-    @api_namespace.doc('query count in db')
+    @api_namespace.doc('query count in db: monthly')
     @api_namespace.expect(monthQuery_parser)
     def get(self):
         """
@@ -288,3 +300,18 @@ class UsersMonthQuery(Resource):
             result[f'{month}'] = user[0][0]
 
         return result
+
+
+@api_namespace.route('/stat/sumquery/')
+class UsersSummaryQuery(Resource):
+    @api_namespace.doc('query count in db: total count')
+    @api_namespace.expect(authentication_parser)
+    def get(self):
+        """
+        Help find the sum of records in database
+        """
+        args = authentication_parser.parse_args()
+        authentication_header_parser(args['Authorization'])
+        user = (UserModel.query.count())
+
+        return user

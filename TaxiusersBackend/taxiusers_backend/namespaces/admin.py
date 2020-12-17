@@ -10,6 +10,7 @@ admin_namespace = Namespace('admin', description='Admin operations')
 model = {
     'id': fields.Integer(),
     'username': fields.String(),
+    'admin': fields.Integer(),
     # DO NOT RETURN THE PASSWORD!!!
     'creation': fields.DateTime(),
 }
@@ -18,6 +19,7 @@ user_model = admin_namespace.model('User', model)
 user_parser = admin_namespace.parser()
 user_parser.add_argument('username', type=str, required=True, help='Username')
 user_parser.add_argument('password', type=str, required=True, help='Password')
+user_parser.add_argument('admin', type=int, choices=(0, 1, 2), required=True, help='Is user (super) admin')
 
 
 @admin_namespace.route('/users/')
@@ -37,6 +39,7 @@ class UserCreate(Resource):
         new_user = UserModel(
             username=args['username'],
             password=args['password'],
+            admin=args['admin'],
             creation=datetime.utcnow()
         )
         db.session.add(new_user)

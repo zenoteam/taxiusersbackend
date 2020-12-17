@@ -42,16 +42,22 @@ def decode_token(token, public_key):
     return jwt.decode(token, public_key, algoritms='RS256')
 
 
-def generate_token_header(username, private_key):
+def generate_token_header(payload1, private_key):
     """
     Generate a token header base on the username. Sign using the private key.
     """
     payload = {
-        'username': username,
+        'id': payload1['id'],
         'iat': datetime.utcnow(),
         'exp': datetime.utcnow() + timedelta(days=2),
-        'jti': '{0}{1}'.format(username, int(datetime.utcnow().timestamp()))
+        'jti': '{0}-{1}'.format(payload1['id'], int(datetime.utcnow().timestamp()))
     }
+
+    # indicate that user is a (super) admin
+    if 'admin' in payload1:
+        if payload1['admin'] is not None:
+            payload['admin'] = payload1['admin']
+
     token = encode_token(payload, private_key)
     token = token.decode('utf8')
     return f'Bearer {token}'
@@ -90,8 +96,8 @@ def validate_token_header(header, public_key):
         return None
 
     # Check username is in the token
-    if 'username' not in decoded_token:
-        logger.warning('Token does not have username')
+    if 'id' not in decoded_token:
+        logger.warning('Token does not have user id')
         return None
 
     # Check if token has been blacklisted
