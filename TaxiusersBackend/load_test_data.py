@@ -12,15 +12,17 @@ if __name__ == '__main__':
         ('bruce', "bruce", 1, datetime.now()),
         # admin user
         ('esther', "esther", 2, datetime.now()),
-        # normal user
-        ('stephen', "stephen", 0, datetime.now()),
+        # driver
+        ('stephen', "stephen", 3, datetime.now()),
+        # rider
+        ('jacob', "jacob", 4, datetime.now()),
     ]
-    for username, password, admin, creation in test_data:
+    for username, password, role, createdAt in test_data:
         user = UserModel(
             username=username,
             password=password,
-            admin=admin,
-            creation=creation
+            role=role,
+            createdAt=createdAt
         )
         application.db.session.add(user)
 

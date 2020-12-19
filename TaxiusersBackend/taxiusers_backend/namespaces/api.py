@@ -1,5 +1,4 @@
 import http.client
-import requests
 from datetime import datetime, timedelta
 
 from flask import abort
@@ -10,7 +9,6 @@ from taxiusers_backend import config
 from taxiusers_backend.db import db
 from taxiusers_backend.models import UserModel, bcrypt
 from taxiusers_backend.token import generate_token_header, validate_token_header, blacklist_token
-from taxiusers_backend.utils import update_last_seen
 
 api_namespace = Namespace('api', description='API operations')
 
@@ -67,16 +65,16 @@ class UserLogin(Resource):
 
         # Generate the header
         tokenPayload = {'id': user.id}
-        if user.admin == 1 or user.admin == 2:
-            tokenPayload['admin'] = user.admin
+        if user.role == 1 or user.role == 2:
+            tokenPayload['admin'] = user.role
         header = generate_token_header(tokenPayload, config.PRIVATE_KEY)
 
-        # Update user last seen at
-        try:
-            update_last_seen(header)
-        except requests.exceptions.ConnectionError:
-            pass
-            # return 'unable to connect to user detail server', http.client.INTERNAL_SERVER_ERROR
+        # update last login timestamp
+        user.lastLoginAt = datetime.utcnow()
+
+        # save update
+        db.session.add(user)
+        db.session.commit()
 
         return {'Authorized': header}, http.client.OK
 
@@ -189,7 +187,7 @@ class UpdatePwd(Resource):
 
         # check that user is an admin
         if 'admin' not in payload:
-            return '', http.client.FORBIDDEN
+            abort(403)
 
         # Get user
         user = (
@@ -198,9 +196,11 @@ class UpdatePwd(Resource):
             ).one()
         )
 
-        # check if the user who's password is about to be updated is a super admin
-        # if user.admin == 1:
-        #     return '', http.client.FORBIDDEN
+        # check if password to be updated belongs to (super) admin
+        if user.role == 1 or user.role == 2 :
+            if 'admin' in payload:
+                if payload['admin'] != 1:
+                    abort(403)
 
         user.password = bcrypt.generate_password_hash(
             args['new_password']
@@ -252,7 +252,7 @@ class UsersDateQuery(Resource):
 
         while start_date <= end_date:
             user = (db.session.query(func.count(UserModel.id)).filter(
-                func.date(UserModel.creation) == start_date).all())
+                func.date(UserModel.createdAt) == start_date).all())
             date = start_date.strftime("%d/%m/%Y")
             result[date] = user[0][0]
 
@@ -294,8 +294,8 @@ class UsersMonthQuery(Resource):
 
         for month in range(1, 13):
             user = (db.session.query(func.count(UserModel.id)).filter(
-                func.extract('year', UserModel.creation) == year).filter(
-                func.extract('month', UserModel.creation) == month).all())
+                func.extract('year', UserModel.createdAt) == year).filter(
+                func.extract('month', UserModel.createdAt) == month).all())
 
             result[f'{month}'] = user[0][0]
 

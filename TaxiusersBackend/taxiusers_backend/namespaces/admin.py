@@ -10,16 +10,23 @@ admin_namespace = Namespace('admin', description='Admin operations')
 model = {
     'id': fields.Integer(),
     'username': fields.String(),
-    'admin': fields.Integer(),
+    'role': fields.Integer(),
     # DO NOT RETURN THE PASSWORD!!!
-    'creation': fields.DateTime(),
+    'lastLoginAt': fields.DateTime(),
+    'createdAt': fields.DateTime(),
 }
 user_model = admin_namespace.model('User', model)
 
 user_parser = admin_namespace.parser()
 user_parser.add_argument('username', type=str, required=True, help='Username')
 user_parser.add_argument('password', type=str, required=True, help='Password')
-user_parser.add_argument('admin', type=int, choices=(0, 1, 2), required=True, help='Is user (super) admin')
+user_parser.add_argument(
+    'role',
+    type=int,
+    choices=(0, 1, 2),
+    required=False,
+    help='The role of the user (1: superadmin, 2: admin, 3: drivers, 4: riders)'
+)
 
 
 @admin_namespace.route('/users/')
@@ -39,8 +46,8 @@ class UserCreate(Resource):
         new_user = UserModel(
             username=args['username'],
             password=args['password'],
-            admin=args['admin'],
-            creation=datetime.utcnow()
+            role=args['role'],
+            createdAt=datetime.utcnow()
         )
         db.session.add(new_user)
         try:
