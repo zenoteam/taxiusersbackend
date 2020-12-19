@@ -14,7 +14,7 @@ def test_create_user(client):
     new_user = {
         'username': fake.name(),
         'password': fake.password(length=15, special_chars=True),
-        'admin': 1,
+        'role': 1,
     }
     response = client.post('/admin/users/', data=new_user)
     result = response.json
@@ -24,8 +24,9 @@ def test_create_user(client):
     expected = {
         'id': ANY,
         'username': new_user['username'],
-        'admin': new_user['admin'],
-        'creation': '2019-05-07T13:47:34',
+        'role': new_user['role'],
+        'lastLoginAt': ANY,
+        'createdAt': '2019-05-07T13:47:34',
     }
     assert result == expected
 
@@ -36,15 +37,13 @@ def test_login(client):
     new_user = {
         'username': USERNAME,
         'password': PASSWORD,
-        'admin': 1,
+        'role': 1,
     }
     response = client.post('/admin/users/', data=new_user)
     assert http.client.CREATED == response.status_code
 
-    with patch('taxiusers_backend.utils.requests.post') as mock_post:
-        mock_post.return_value.status_code = 200
-        response = client.post('/api/login/', data=new_user)
-        result = response.json
+    response = client.post('/api/login/', data=new_user)
+    result = response.json
     assert http.client.OK == response.status_code
 
     expected = {
@@ -59,15 +58,13 @@ def test_verify(client):
     new_user = {
         'username': USERNAME,
         'password': PASSWORD,
-        'admin': 1,
+        'role': 1,
     }
     response = client.post('/admin/users/', data=new_user)
     assert http.client.CREATED == response.status_code
 
-    with patch('taxiusers_backend.utils.requests.post') as mock_post:
-        mock_post.return_value.status_code = 200
-        response = client.post('/api/login/', data=new_user)
-        result = response.json
+    response = client.post('/api/login/', data=new_user)
+    result = response.json
     assert http.client.OK == response.status_code
 
     expected = {
@@ -85,15 +82,13 @@ def test_logout(client):
     new_user = {
         'username': USERNAME,
         'password': PASSWORD,
-        'admin': 1,
+        'role': 1,
     }
     response = client.post('/admin/users/', data=new_user)
     assert http.client.CREATED == response.status_code
 
-    with patch('taxiusers_backend.utils.requests.post') as mock_post:
-        mock_post.return_value.status_code = 200
-        response = client.post('/api/login/', data=new_user)
-        result = response.json
+    response = client.post('/api/login/', data=new_user)
+    result = response.json
     assert http.client.OK == response.status_code
 
     expected = {
@@ -111,7 +106,7 @@ def test_wrong_password(client):
     new_user = {
         'username': USERNAME,
         'password': PASSWORD,
-        'admin': 1,
+        'role': 1,
     }
     response = client.post('/admin/users/', data=new_user)
     assert http.client.CREATED == response.status_code
@@ -130,16 +125,14 @@ def test_update_password(client):
     new_user = {
         'username': USERNAME,
         'password': PASSWORD,
-        'admin': 1,
+        'role': 1,
     }
     response = client.post('/admin/users/', data=new_user)
     new_user_result = response.json
     assert http.client.CREATED == response.status_code
 
-    with patch('taxiusers_backend.utils.requests.post') as mock_post:
-        mock_post.return_value.status_code = 200
-        response = client.post('/api/login/', data=new_user)
-        result = response.json
+    response = client.post('/api/login/', data=new_user)
+    result = response.json
     assert http.client.OK == response.status_code
 
     expected = {
@@ -162,16 +155,14 @@ def test_update_password_login(client):
     new_user = {
         'username': USERNAME,
         'password': PASSWORD,
-        'admin': 1,
+        'role': 1,
     }
     response = client.post('/admin/users/', data=new_user)
     new_user_result = response.json
     assert http.client.CREATED == response.status_code
 
-    with patch('taxiusers_backend.utils.requests.post') as mock_post:
-        mock_post.return_value.status_code = 200
-        response = client.post('/api/login/', data=new_user)
-        result = response.json
+    response = client.post('/api/login/', data=new_user)
+    result = response.json
     assert http.client.OK == response.status_code
 
     expected = {
@@ -191,10 +182,9 @@ def test_update_password_login(client):
         'username': USERNAME,
         'password': new_pw['new_password'],
     }
-    with patch('taxiusers_backend.utils.requests.post') as mock_post:
-        mock_post.return_value.status_code = 200
-        response = client.post('/api/login/', data=user)
-        result = response.json
+
+    response = client.post('/api/login/', data=user)
+    result = response.json
     assert http.client.OK == response.status_code
 
     expected = {
@@ -209,15 +199,13 @@ def test_change_password(client):
     new_user = {
         'username': USERNAME,
         'password': PASSWORD,
-        'admin': 1,
+        'role': 1,
     }
     response = client.post('/admin/users/', data=new_user)
     assert http.client.CREATED == response.status_code
 
-    with patch('taxiusers_backend.utils.requests.post') as mock_post:
-        mock_post.return_value.status_code = 200
-        response = client.post('/api/login/', data=new_user)
-        result = response.json
+    response = client.post('/api/login/', data=new_user)
+    result = response.json
     assert http.client.OK == response.status_code
 
     expected = {
@@ -240,15 +228,13 @@ def test_change_password_login(client):
     new_user = {
         'username': USERNAME,
         'password': PASSWORD,
-        'admin': 1,
+        'role': 1,
     }
     response = client.post('/admin/users/', data=new_user)
     assert http.client.CREATED == response.status_code
 
-    with patch('taxiusers_backend.utils.requests.post') as mock_post:
-        mock_post.return_value.status_code = 200
-        response = client.post('/api/login/', data=new_user)
-        result = response.json
+    response = client.post('/api/login/', data=new_user)
+    result = response.json
     assert http.client.OK == response.status_code
 
     expected = {
@@ -268,10 +254,9 @@ def test_change_password_login(client):
         'username': USERNAME,
         'password': new_pw['new_password'],
     }
-    with patch('taxiusers_backend.utils.requests.post') as mock_post:
-        mock_post.return_value.status_code = 200
-        response = client.post('/api/login/', data=user)
-        result = response.json
+
+    response = client.post('/api/login/', data=user)
+    result = response.json
     assert http.client.OK == response.status_code
 
     expected = {
