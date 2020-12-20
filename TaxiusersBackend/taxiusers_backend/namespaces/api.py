@@ -69,6 +69,8 @@ class UserLogin(Resource):
             tokenPayload['admin'] = user.role
         header = generate_token_header(tokenPayload, config.PRIVATE_KEY)
 
+        isFirstLogin = True if user.lastLoginAt is None else False
+
         # update last login timestamp
         user.lastLoginAt = datetime.utcnow()
 
@@ -76,7 +78,11 @@ class UserLogin(Resource):
         db.session.add(user)
         db.session.commit()
 
-        return {'Authorized': header}, http.client.OK
+        response = {'Authorized': header}
+        if isFirstLogin:
+            response['firstLogin'] = 'true'
+
+        return response, http.client.OK
 
 
 @api_namespace.route('/verify/')

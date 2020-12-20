@@ -49,7 +49,11 @@ def test_login(client):
     expected = {
         'Authorized': ANY,
     }
-    assert result == expected
+    alternative = {
+        'Authorized': ANY,
+        'firstLogin': ANY,
+    }
+    assert result == expected or result == alternative
 
 
 def test_verify(client):
@@ -70,7 +74,11 @@ def test_verify(client):
     expected = {
         'Authorized': ANY,
     }
-    assert result == expected
+    alternative = {
+        'Authorized': ANY,
+        'firstLogin': ANY,
+    }
+    assert result == expected or result == alternative
     headers = {'Authorization': result['Authorized']}
     response = client.get('/api/verify/', headers=headers)
     assert http.client.OK == response.status_code
@@ -94,7 +102,11 @@ def test_logout(client):
     expected = {
         'Authorized': ANY,
     }
-    assert result == expected
+    alternative = {
+        'Authorized': ANY,
+        'firstLogin': ANY,
+    }
+    assert result == expected or result == alternative
     headers = {'Authorization': result['Authorized']}
     response = client.post('/api/logout/', headers=headers)
     assert http.client.OK == response.status_code
@@ -138,7 +150,11 @@ def test_update_password(client):
     expected = {
         'Authorized': ANY,
     }
-    assert result == expected
+    alternative = {
+        'Authorized': ANY,
+        'firstLogin': ANY,
+    }
+    assert result == expected or result == alternative
 
     new_pw = {
         'userId': new_user_result['id'],
@@ -168,7 +184,11 @@ def test_update_password_login(client):
     expected = {
         'Authorized': ANY,
     }
-    assert result == expected
+    alternative = {
+        'Authorized': ANY,
+        'firstLogin': ANY,
+    }
+    assert result == expected or result == alternative
 
     new_pw = {
         'userId': new_user_result['id'],
@@ -190,8 +210,11 @@ def test_update_password_login(client):
     expected = {
         'Authorized': ANY,
     }
-    assert result == expected
-
+    alternative = {
+        'Authorized': ANY,
+        'firstLogin': ANY,
+    }
+    assert result == expected or result == alternative
 
 def test_change_password(client):
     USERNAME = fake.name()
@@ -211,7 +234,11 @@ def test_change_password(client):
     expected = {
         'Authorized': ANY,
     }
-    assert result == expected
+    alternative = {
+        'Authorized': ANY,
+        'firstLogin': ANY,
+    }
+    assert result == expected or result == alternative
 
     new_pw = {
         'old_password': PASSWORD,
@@ -240,7 +267,11 @@ def test_change_password_login(client):
     expected = {
         'Authorized': ANY,
     }
-    assert result == expected
+    alternative = {
+        'Authorized': ANY,
+        'firstLogin': ANY,
+    }
+    assert result == expected or result == alternative
 
     new_pw = {
         'old_password': PASSWORD,
@@ -262,4 +293,8 @@ def test_change_password_login(client):
     expected = {
         'Authorized': ANY,
     }
-    assert result == expected
+    alternative = {
+        'Authorized': ANY,
+        'firstLogin': ANY,
+    }
+    assert result == expected or result == alternative
