@@ -5,6 +5,8 @@ from taxiusers_backend.models import UserModel
 from taxiusers_backend.db import db
 from sqlalchemy.exc import IntegrityError
 
+from taxiusers_backend.namespaces.api import authentication_header_parser
+
 admin_namespace = Namespace('admin', description='Admin operations')
 
 model = {
@@ -26,6 +28,14 @@ user_parser.add_argument(
     choices=(0, 1, 2),
     required=False,
     help='The role of the user (1: superadmin, 2: admin, 3: drivers, 4: riders)'
+)
+
+authParser = admin_namespace.parser()
+authParser.add_argument(
+    'Authorization',
+    location='headers',
+    type=str,
+    help='Bearer Access Token'
 )
 
 
@@ -60,3 +70,28 @@ class UserCreate(Resource):
         result = admin_namespace.marshal(new_user, user_model)
 
         return result, http.client.CREATED
+
+
+@admin_namespace.route('/users/<int:userId>/')
+class UserDelete(Resource):
+    @admin_namespace.expect(authParser)
+    @admin_namespace.doc('delete_user')
+    def delete(self, userId: int):
+        """
+        Delete a user
+        """
+        args = authParser.parse_args()
+        authentication_header_parser(args['Authorization'])
+
+        user = UserModel.query.get(userId)
+        if not user:
+            # The user is not present
+            return '', http.client.NO_CONTENT
+
+        if user.role == 1:
+            return 'Unable to delete super user', http.client.FORBIDDEN
+
+        db.session.delete(user)
+        db.session.commit()
+
+        return '', http.client.NO_CONTENT

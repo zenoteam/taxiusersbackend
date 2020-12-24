@@ -12,7 +12,7 @@ class UserModel(db.Model):
     lastLoginAt = db.Column(db.DateTime, nullable=True)
     createdAt = db.Column(db.DateTime, server_default=func.now())
 
-    # superadmin: 1, admin: 2, drivers: 3, riders: 4
+    # superadmin: 1, admin: 2, drivers: 3, riders/passengers: 4
     role = db.Column(db.Integer, nullable=False, default=4)
 
     def __init__(self, username, password, role, createdAt):
