@@ -75,9 +75,9 @@ services:
                 - POSTGRES_PASSWORD=somepassword
                 - POSTGRES_PORT=5432
         ports:
-            - "5432:5432"
+            - "6379:6379"
     
-    redis:
+    redisdb:
         image: redis
 
     server:
@@ -87,7 +87,7 @@ services:
             context: .
             dockerfile: docker/app/Dockerfile
         ports:
-            - "8001:8000"
+            - "8000:8000"
         depends_on:
             - db
 
