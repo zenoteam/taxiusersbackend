@@ -11,6 +11,7 @@ admin_namespace = Namespace('admin', description='Admin operations')
 
 model = {
     'id': fields.Integer(),
+    'auth_id': fields.String(),
     'username': fields.String(),
     'role': fields.Integer(),
     # DO NOT RETURN THE PASSWORD!!!
@@ -31,12 +32,10 @@ user_parser.add_argument(
 )
 
 authParser = admin_namespace.parser()
-authParser.add_argument(
-    'Authorization',
-    location='headers',
-    type=str,
-    help='Bearer Access Token'
-)
+authParser.add_argument('Authorization',
+                        location='headers',
+                        type=str,
+                        help='Bearer Access Token')
 
 
 @admin_namespace.route('/users/')
@@ -53,12 +52,10 @@ class UserCreate(Resource):
         password_hash = bcrypt.generate_password_hash(password)\
             .decode('UTF-8')"""
 
-        new_user = UserModel(
-            username=args['username'],
-            password=args['password'],
-            role=args['role'],
-            createdAt=datetime.utcnow()
-        )
+        new_user = UserModel(username=args['username'],
+                             password=args['password'],
+                             role=args['role'],
+                             createdAt=datetime.utcnow())
         db.session.add(new_user)
         try:
             db.session.commit()

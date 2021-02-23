@@ -25,12 +25,10 @@ def authentication_header_parser(value):
 
 # Input and output formats for Users
 authentication_parser = api_namespace.parser()
-authentication_parser.add_argument(
-    'Authorization',
-    location='headers',
-    type=str,
-    help='Bearer Access Token'
-)
+authentication_parser.add_argument('Authorization',
+                                   location='headers',
+                                   type=str,
+                                   help='Bearer Access Token')
 
 login_parser = api_namespace.parser()
 login_parser.add_argument('username', type=str, required=True, help='username')
@@ -48,11 +46,8 @@ class UserLogin(Resource):
         args = login_parser.parse_args()
 
         # Search for the user
-        user = (
-            UserModel.query.filter(
-                UserModel.username == args['username']
-            ).first()
-        )
+        user = (UserModel.query.filter(
+            UserModel.username == args['username']).first())
         if not user:
             return '', http.client.UNAUTHORIZED
 
@@ -81,6 +76,7 @@ class UserLogin(Resource):
         response = {'Authorized': header}
         if isFirstLogin:
             response['firstLogin'] = 'true'
+        response["auth_id"] = user.auth_id
 
         return response, http.client.OK
 
@@ -121,18 +117,14 @@ class UserLogout(Resource):
 
 
 change_pw_parser = authentication_parser.copy()
-change_pw_parser.add_argument(
-    'old_password',
-    type=str,
-    required=True,
-    help='old password'
-)
-change_pw_parser.add_argument(
-    'new_password',
-    type=str,
-    required=True,
-    help='new password'
-)
+change_pw_parser.add_argument('old_password',
+                              type=str,
+                              required=True,
+                              help='old password')
+change_pw_parser.add_argument('new_password',
+                              type=str,
+                              required=True,
+                              help='new password')
 
 
 @api_namespace.route('/password/change/')
@@ -156,8 +148,7 @@ class ChangePwd(Resource):
             return '', http.client.UNAUTHORIZED
 
         user.password = bcrypt.generate_password_hash(
-            args['new_password']
-        ).decode('UTF-8')
+            args['new_password']).decode('UTF-8')
 
         db.session.add(user)
         db.session.commit()
@@ -166,18 +157,14 @@ class ChangePwd(Resource):
 
 
 update_pw_parser = authentication_parser.copy()
-update_pw_parser.add_argument(
-    'userId',
-    type=int,
-    required=True,
-    help='The user Id'
-)
-update_pw_parser.add_argument(
-    'new_password',
-    type=str,
-    required=True,
-    help='The new password'
-)
+update_pw_parser.add_argument('userId',
+                              type=int,
+                              required=True,
+                              help='The user Id')
+update_pw_parser.add_argument('new_password',
+                              type=str,
+                              required=True,
+                              help='The new password')
 
 
 @api_namespace.route('/password/update/')
@@ -196,21 +183,16 @@ class UpdatePwd(Resource):
             abort(403)
 
         # Get user
-        user = (
-            UserModel.query.filter(
-                UserModel.id == args['userId']
-            ).one()
-        )
+        user = (UserModel.query.filter(UserModel.id == args['userId']).one())
 
         # check if password to be updated belongs to (super) admin
-        if user.role == 1 or user.role == 2 :
+        if user.role == 1 or user.role == 2:
             if 'admin' in payload:
                 if payload['admin'] != 1:
                     abort(403)
 
         user.password = bcrypt.generate_password_hash(
-            args['new_password']
-        ).decode('UTF-8')
+            args['new_password']).decode('UTF-8')
 
         db.session.add(user)
         db.session.commit()
@@ -219,18 +201,14 @@ class UpdatePwd(Resource):
 
 
 dateQuery_parser = authentication_parser.copy()
-dateQuery_parser.add_argument(
-    "startdate",
-    type=str,
-    required=True,
-    help="The start date format '%d/%m/%Y'"
-)
-dateQuery_parser.add_argument(
-    'enddate',
-    type=str,
-    required=True,
-    help="The end date format '%d/%m/%Y'"
-)
+dateQuery_parser.add_argument("startdate",
+                              type=str,
+                              required=True,
+                              help="The start date format '%d/%m/%Y'")
+dateQuery_parser.add_argument('enddate',
+                              type=str,
+                              required=True,
+                              help="The end date format '%d/%m/%Y'")
 
 
 @api_namespace.route('/stat/datequery/')
@@ -268,12 +246,10 @@ class UsersDateQuery(Resource):
 
 
 monthQuery_parser = authentication_parser.copy()
-monthQuery_parser.add_argument(
-    'year',
-    type=str,
-    required=True,
-    help='The year'
-)
+monthQuery_parser.add_argument('year',
+                               type=str,
+                               required=True,
+                               help='The year')
 
 
 @api_namespace.route('/stat/monthquery/')
@@ -301,7 +277,7 @@ class UsersMonthQuery(Resource):
         for month in range(1, 13):
             user = (db.session.query(func.count(UserModel.id)).filter(
                 func.extract('year', UserModel.createdAt) == year).filter(
-                func.extract('month', UserModel.createdAt) == month).all())
+                    func.extract('month', UserModel.createdAt) == month).all())
 
             result[f'{month}'] = user[0][0]
 
