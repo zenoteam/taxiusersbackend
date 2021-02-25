@@ -19,7 +19,8 @@ def blacklist_token(payload):
     store token jti value in redis
     """
     expTime = payload['exp'] - int(datetime.utcnow().timestamp())
-    blacklistStore.set('blacklist:{}'.format(payload['jti']), payload['jti'], expTime)
+    blacklistStore.set('blacklist:{}'.format(payload['jti']), payload['jti'],
+                       expTime)
     return is_token_blacklisted(payload)
 
 
@@ -28,7 +29,7 @@ def is_token_blacklisted(payload):
     check if jti value is stored redis i.e. token has been blacklisted
     """
     jti = payload['jti']
-    if blacklistStore.get('blacklist:'+jti):
+    if blacklistStore.get('blacklist:' + jti):
         return True
     else:
         return False
@@ -48,9 +49,11 @@ def generate_token_header(payload1, private_key):
     """
     payload = {
         'id': payload1['id'],
+        "auth_id": payload1["auth_id"],
         'iat': datetime.utcnow(),
         'exp': datetime.utcnow() + timedelta(days=2),
-        'jti': '{0}-{1}'.format(payload1['id'], int(datetime.utcnow().timestamp()))
+        'jti': '{0}-{1}'.format(payload1['id'],
+                                int(datetime.utcnow().timestamp()))
     }
 
     # indicate that user is a (super) admin

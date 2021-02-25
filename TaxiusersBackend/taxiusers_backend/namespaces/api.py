@@ -60,9 +60,9 @@ class UserLogin(Resource):
 
         # Generate the header
         tokenPayload = {'id': user.id}
+        tokenPayload["auth_id"] = user.auth_id
         if user.role == 1 or user.role == 2:
             tokenPayload['admin'] = user.role
-            tokenPayload["auth_id"] = user.auth_id
         header = generate_token_header(tokenPayload, config.PRIVATE_KEY)
 
         isFirstLogin = True if user.lastLoginAt is None else False
