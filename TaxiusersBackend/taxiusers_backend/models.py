@@ -18,6 +18,8 @@ class UserModel(db.Model):
     # superadmin: 1, admin: 2, drivers: 3, riders/passengers: 4
     role = db.Column(db.Integer, nullable=False, default=4)
 
+    firebaseToken = db.Column(db.String(250))
+
     def __init__(self, username, password, role, createdAt):
         self.username = username
         self.auth_id = str(uuid4())
