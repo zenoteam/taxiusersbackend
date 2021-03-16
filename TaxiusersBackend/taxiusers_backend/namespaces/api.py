@@ -49,7 +49,7 @@ class UserLogin(Resource):
         user = (UserModel.query.filter(
             UserModel.username == args['username']).first())
         if not user:
-            return '', http.client.UNAUTHORIZED
+            return '', http.client.NOT_FOUND
 
         # Check the password
         # REMEMBER, THIS IS NOT SAFE. DO NOT STORE PASSWORDS IN PLAIN
