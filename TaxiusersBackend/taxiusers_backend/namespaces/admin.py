@@ -24,7 +24,10 @@ user_model = admin_namespace.model('User', model)
 user_parser = admin_namespace.parser()
 user_parser.add_argument('username', type=str, required=True, help='Username')
 user_parser.add_argument('password', type=str, required=True, help='Password')
-user_parser.add_argument('firebaseToken', type=str, required=False, help='firebaseToken')
+user_parser.add_argument('firebaseToken',
+                         type=str,
+                         required=False,
+                         help='firebaseToken')
 user_parser.add_argument(
     'role',
     type=int,
@@ -32,7 +35,6 @@ user_parser.add_argument(
     required=False,
     help='The role of the user (1: superadmin, 2: admin, 3: drivers, 4: riders)'
 )
-
 
 authParser = admin_namespace.parser()
 authParser.add_argument('Authorization',
@@ -98,17 +100,17 @@ class UserDelete(Resource):
         return '', http.client.NO_CONTENT
 
 
-@admin_namespace.route('/users/check/<string:username')
-def check_username(self,username:str):
-    """
-    Checks if a username exists
-    """
-    args = authParser.parse_args()
-    authentication_header_parser(args['Authorization'])
+@admin_namespace.route('/users/check/<string:username>')
+class CheckUser(Resource):
+    def get(self, username: str):
+        """
+        Checks if a username exists
+        """
+        args = authParser.parse_args()
 
-    user = UserModel.query.filter(username=username).first()
-    
-    if not user:
-        # The username doesnt exist
-        return {"result": False}, http.client.NOT_FOUND
-    {"result": True}, http.client.OK
+        user = UserModel.query.filter(UserModel.username == username).first()
+
+        if not user:
+            # The username doesnt exist
+            return {"result": False}, http.client.NOT_FOUND
+        return {"result": True}, http.client.OK

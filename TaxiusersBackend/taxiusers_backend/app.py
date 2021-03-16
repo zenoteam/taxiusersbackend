@@ -7,16 +7,14 @@ migrate = Migrate()
 
 
 def create_app():
-    from taxiusers_backend.namespaces.api import api_namespace
-    from taxiusers_backend.namespaces.admin import admin_namespace
+    from .namespaces.api import api_namespace
+    from .namespaces.admin import admin_namespace
 
     application = Flask(__name__)
-    api = Api(
-        application,
-        version='0.1',
-        title='Taxi Authentication Service',
-        description='Taxi Users Authentication Backend API'
-    )
+    api = Api(application,
+              version='0.1',
+              title='Taxi Authentication Service',
+              description='Taxi Users Authentication Backend API')
 
     from taxiusers_backend.db import db, db_config
     application.config['RESTPLUS_MASK_SWAGGER'] = False

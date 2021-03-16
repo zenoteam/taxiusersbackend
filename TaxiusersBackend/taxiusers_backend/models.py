@@ -20,10 +20,12 @@ class UserModel(db.Model):
 
     firebaseToken = db.Column(db.String(250))
 
-    def __init__(self, username, password, role, createdAt):
+    def __init__(self, username, password, role, createdAt, firebaseToken):
         self.username = username
         self.auth_id = str(uuid4())
         # Hash and Salt Password
         self.password = bcrypt.generate_password_hash(password).decode('UTF-8')
         self.role = role
         self.createdAt = createdAt
+        self.firebaseToken = firebaseToken
+        
