@@ -1,19 +1,16 @@
-Users Backend example
-=======
+# Taxiusers Backend example
 
-This code is our example of Users Backend for the Thoughts application. It is a Flask application (https://www.djangoproject.com/) that creates a RESTful backend to store microblogging posts.
+This code is our example of Taxiusers Engine. It is a Flask application (https://www.djangoproject.com/) that creates a RESTful backend to store microblogging posts.
 
 **THIS IS AN EXAMPLE WEBSITE**
 
-Set it up
-------
+## Set it up
 
 Create a virtual environment and install the requirements
 
     $ python3 -m venv ./venv
     $ source ./venv/bin/activate
     $ pip install -r requirements.txt
-
 
 Get the local database ready
 
@@ -31,16 +28,12 @@ Start the development server
 
 Check the service at http://127.0.0.1:5000/
 
-
-Tests
-------
+## Tests
 
 Run the unit tests with
 
     $ pytest
 
+## Dependencies
 
-Dependencies
-------
-
-UsersBackend uses Flask as a web framework, Flask RESTplus for creating the interface, and SQLAlchemy to handle the database models. It uses a SQLlite database for local development.
+TaxiusersBackend uses Flask as a web framework, Flask RESTplus for creating the interface, and SQLAlchemy to handle the database models. It uses a SQLlite database for local development.

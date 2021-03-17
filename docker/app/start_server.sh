@@ -1,4 +1,10 @@
 #!/bin/sh
+echo Initializing database
+
+python ./init_db.py
+
+echo Done Initializing
+
 
 _term() {
   echo "Caught SIGTERM signal! Sending graceful stop to uWSGI through the master-fifo"

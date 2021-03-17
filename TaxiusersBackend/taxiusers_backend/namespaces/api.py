@@ -8,7 +8,7 @@ from sqlalchemy import func
 from taxiusers_backend import config
 from taxiusers_backend.db import db
 from taxiusers_backend.models import UserModel, bcrypt
-from taxiusers_backend.token import generate_token_header, validate_token_header, blacklist_token
+from taxiusers_backend.token_validation import generate_token_header, validate_token_header, blacklist_token
 
 api_namespace = Namespace('api', description='API operations')
 
@@ -49,14 +49,23 @@ class UserLogin(Resource):
         user = (UserModel.query.filter(
             UserModel.username == args['username']).first())
         if not user:
-            return '', http.client.NOT_FOUND
+            response = {
+                    "status": "error",
+                    "message":"Username doesnt exist"
+                    }
+            return response, http.client.NOT_FOUND
 
         # Check the password
         # REMEMBER, THIS IS NOT SAFE. DO NOT STORE PASSWORDS IN PLAIN
         auth_user = bcrypt.check_password_hash(user.password, args['password'])
 
         if not auth_user:
-            return '', http.client.UNAUTHORIZED
+            response = {
+                    "status": "error",
+                    "message":"Incorrect password"
+                    }
+
+            return response, http.client.UNAUTHORIZED
 
         # Generate the header
         tokenPayload = {'id': user.id}
@@ -78,6 +87,7 @@ class UserLogin(Resource):
         if isFirstLogin:
             response['firstLogin'] = 'true'
         response["auth_id"] = user.auth_id
+        response["firebaseToken"] = user.firebaseToken
 
         return response, http.client.OK
 
@@ -146,7 +156,12 @@ class ChangePwd(Resource):
         auth_user = bcrypt.check_password_hash(user.password, old_password)
 
         if not auth_user:
-            return '', http.client.UNAUTHORIZED
+            response = {
+                    "status": "error",
+                    "message":"Incorrect Old Password"
+                    }
+            return response, http.client.UNAUTHORIZED
+    
 
         user.password = bcrypt.generate_password_hash(
             args['new_password']).decode('UTF-8')
