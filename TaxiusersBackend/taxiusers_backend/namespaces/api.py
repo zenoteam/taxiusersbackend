@@ -31,7 +31,8 @@ authentication_parser.add_argument('Authorization',
                                    help='Bearer Access Token')
 
 login_parser = api_namespace.parser()
-login_parser.add_argument('username', type=str, required=True, help='username')
+login_parser.add_argument('phoneNumber', type=str, required=False, help='phoneNumber')
+login_parser.add_argument('email', type=str, required=False, help='email')
 login_parser.add_argument('password', type=str, required=True, help='password')
 
 
@@ -44,14 +45,19 @@ class UserLogin(Resource):
         Login and return a valid Authorization header
         """
         args = login_parser.parse_args()
-
-        # Search for the user
-        user = (UserModel.query.filter(
-            UserModel.username == args['username']).first())
+        
+        if args["phoneNumber"]:
+            # Search for the user
+            user = (UserModel.query.filter(
+                UserModel.phoneNumber == args['phoneNumber']).first())
+        elif args["email"]:
+            user = (UserModel.query.filter(
+                UserModel.email == args['email']).first())
+            
         if not user:
             response = {
                     "status": "error",
-                    "message":"Username doesnt exist"
+                    "message":"email doesnt exist"
                     }
             return response, http.client.NOT_FOUND
 
@@ -161,7 +167,7 @@ class ChangePwd(Resource):
                     "message":"Incorrect Old Password"
                     }
             return response, http.client.UNAUTHORIZED
-    
+
 
         user.password = bcrypt.generate_password_hash(
             args['new_password']).decode('UTF-8')

@@ -10,7 +10,8 @@ bcrypt = Bcrypt()
 class UserModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     auth_id = db.Column(db.String(100), unique=True, nullable=False)
-    username = db.Column(db.String(50), unique=True)
+    email = db.Column(db.String(50), unique=True)
+    phoneNumber = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(250))
     lastLoginAt = db.Column(db.DateTime, nullable=True)
     createdAt = db.Column(db.DateTime, server_default=func.now())
@@ -20,8 +21,9 @@ class UserModel(db.Model):
 
     firebaseToken = db.Column(db.String(250))
 
-    def __init__(self, username, password, role, createdAt, firebaseToken):
-        self.username = username
+    def __init__(self, email, password, phoneNumber, role, createdAt, firebaseToken):
+        self.email = email
+        self.phoneNumber = phoneNumber
         self.auth_id = str(uuid4())
         # Hash and Salt Password
         self.password = bcrypt.generate_password_hash(password).decode('UTF-8')

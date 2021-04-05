@@ -12,7 +12,8 @@ admin_namespace = Namespace('admin', description='Admin operations')
 model = {
     'id': fields.Integer(),
     'auth_id': fields.String(),
-    'username': fields.String(),
+    'email': fields.String(),
+    'phoneNumber': fields.String(),
     'role': fields.Integer(),
     # DO NOT RETURN THE PASSWORD!!!
     'lastLoginAt': fields.DateTime(),
@@ -22,7 +23,8 @@ model = {
 user_model = admin_namespace.model('User', model)
 
 user_parser = admin_namespace.parser()
-user_parser.add_argument('username', type=str, required=True, help='Username')
+user_parser.add_argument('email', type=str, required=True, help='email')
+user_parser.add_argument('phoneNumber', type=str, required=True, help='phoneNumber')
 user_parser.add_argument('password', type=str, required=True, help='Password')
 user_parser.add_argument('firebaseToken',
                          type=str,
@@ -52,12 +54,22 @@ class UserCreate(Resource):
         Create a new user
         """
         args = user_parser.parse_args()
-        # password = args['password']
-        """# Hash and Salt Password
-        password_hash = bcrypt.generate_password_hash(password)\
-            .decode('UTF-8')"""
+        user = (UserModel.query.filter(
+                UserModel.phoneNumber == args['phoneNumber']).first())
+        if user:
+            result = {"result": "error", "status_code": 422,
+                'message': 'phone number already exists, try another one'}
+            return result, http.client.OK
+        
+        user = (UserModel.query.filter(
+                UserModel.email == args['email']).first())
+        if user:
+            result = {"result": "error", "status_code": 422,
+                'message': 'email already exists, try another one'}
+            return result, http.client.OK
 
-        new_user = UserModel(username=args['username'],
+        new_user = UserModel(email=args['email'],
+                             phoneNumber=args["phoneNumber"],
                              password=args['password'],
                              role=args['role'],
                              createdAt=datetime.utcnow(),
@@ -67,8 +79,9 @@ class UserCreate(Resource):
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            result = {'result': 'Username already exists, try another one'}
-            return result, http.client.UNPROCESSABLE_ENTITY
+            result = {"result": "error", "status_code": 422,
+                'message': 'email or phone number already exists, try another one'}
+            return result, http.client.OK
 
         result = admin_namespace.marshal(new_user, user_model)
 
@@ -100,17 +113,35 @@ class UserDelete(Resource):
         return '', http.client.NO_CONTENT
 
 
-@admin_namespace.route('/users/check/<string:username>')
+@admin_namespace.route('/users/checkemail/<string:email>')
 class CheckUser(Resource):
-    def get(self, username: str):
+    def get(self, email: str):
         """
-        Checks if a username exists
+        Checks if a email exists
         """
         args = authParser.parse_args()
 
-        user = UserModel.query.filter(UserModel.username == username).first()
+        user = UserModel.query.filter(UserModel.email == email).first()
 
         if not user:
-            # The username doesnt exist
-            return {"result": False}, http.client.NOT_FOUND
-        return {"result": True}, http.client.OK
+            # The email doesnt exist
+            return {"result": False}, http.client.OK
+        user = admin_namespace.marshal(user, user_model)
+        return {"result": "success", "status_code": 200, "result": user}, http.client.OK
+    
+
+@admin_namespace.route('/users/checkphonenum/<string:phoneNumber>')
+class CheckUser(Resource):
+    def get(self, phoneNumber: str):
+        """
+        Checks if a phone number exists
+        """
+        args = authParser.parse_args()
+
+        user = UserModel.query.filter(UserModel.phoneNumber == phoneNumber).first()
+
+        if not user:
+            # The email doesnt exist
+            return {"result": False}, http.client.OK
+        user = admin_namespace.marshal(user, user_model)
+        return {"result": "success", "status_code": 200, "result": user}, http.client.OK

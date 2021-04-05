@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 REDIS_URI = os.environ.get('REDIS_URI', 'redis://localhost:6379/0')
-
+print(REDIS_URI)
 # redis connection for storing the blacklisted tokens
 blacklistStore = redis.StrictRedis.from_url(REDIS_URI, decode_responses=True)
 
@@ -45,7 +45,7 @@ def decode_token(token, public_key):
 
 def generate_token_header(payload1, private_key):
     """
-    Generate a token header base on the username. Sign using the private key.
+    Generate a token header base on the email. Sign using the private key.
     """
     payload = {
         'id': payload1['id'],
@@ -98,7 +98,7 @@ def validate_token_header(header, public_key):
         logger.warning('Token does not have expiry (exp)')
         return None
 
-    # Check username is in the token
+    # Check email is in the token
     if 'id' not in decoded_token:
         logger.warning('Token does not have user id')
         return None
