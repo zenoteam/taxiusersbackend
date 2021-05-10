@@ -11,7 +11,9 @@ from taxiusers_backend.db import db
 from taxiusers_backend.models import UserModel, bcrypt
 from taxiusers_backend.token_validation import generate_token_header, validate_token_header, blacklist_token
 
-api_namespace = Namespace('api', description='API operations')
+api_namespace = Namespace(name="Api V1.1",
+                          description='Admin operations',
+                          path="/api/v1.1")
 
 prefix_list = ["080", "090", "070", "081", "071", "091"]
 
@@ -431,4 +433,18 @@ class UsersSummaryQuery(Resource):
         authentication_header_parser(args['Authorization'])
         user = (UserModel.query.count())
 
-        return {"status": "sucsess", "details": user}
+        return {"status": "success", "details": user}
+
+
+@api_namespace.route('/health/')
+class Health(Resource):
+    def get(self):
+        """Check health
+        """
+
+        return {
+            "status": "success",
+            "details": {
+                "message": "Fine"
+            }
+        }, http.client.OK

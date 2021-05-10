@@ -9,7 +9,9 @@ from taxiusers_backend.namespaces.api import authentication_header_parser
 from taxiusers_backend.models import UserModel
 from taxiusers_backend.db import db
 
-admin_namespace = Namespace('admin', description='Admin operations')
+admin_namespace = Namespace(name="Admin V1.1",
+                            description='Admin operations',
+                            path="/admin/v1.1")
 
 prefix_list = ["080", "090", "070", "081", "071", "091"]
 
