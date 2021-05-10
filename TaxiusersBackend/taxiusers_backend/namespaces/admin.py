@@ -1,13 +1,17 @@
 import http.client
-from flask_restplus import Namespace, Resource, fields
 from datetime import datetime
-from taxiusers_backend.models import UserModel
-from taxiusers_backend.db import db
+
+import validators
+from flask_restplus import Namespace, Resource, fields
 from sqlalchemy.exc import IntegrityError
 
 from taxiusers_backend.namespaces.api import authentication_header_parser
+from taxiusers_backend.models import UserModel
+from taxiusers_backend.db import db
 
 admin_namespace = Namespace('admin', description='Admin operations')
+
+prefix_list = ["080", "090", "070", "081", "071", "091"]
 
 model = {
     'id': fields.Integer(),
@@ -51,31 +55,69 @@ authParser.add_argument('Authorization',
 @admin_namespace.route('/users/')
 class UserCreate(Resource):
     @admin_namespace.expect(user_parser)
-    @admin_namespace.marshal_with(user_model, code=http.client.CREATED)
     def post(self):
         """
         Create a new user
         """
         args = user_parser.parse_args()
+
+        phone_number = args["phone_number"]
+
+        first_three = phone_number[:3]
+
+        if first_three not in prefix_list and first_three != "+23":
+            response = {
+                "status": "error",
+                "details": {
+                    "message": "Pass in a valid phone-number"
+                }
+            }
+            return response, http.client.BAD_REQUEST
+
+        if len(phone_number) == 11 or len(phone_number) == 14:
+            user = (UserModel.query.filter(
+                UserModel.phone_number == phone_number).first())
+
+            if not user:
+                response = {
+                    "status": "error",
+                    "detials": {
+                        "message": "User with phone number doesnt exist"
+                    }
+                }
+                return response, http.client.NOT_FOUND
+
         user = (UserModel.query.filter(
-            UserModel.phone_number == args['phone_number']).first())
+            UserModel.phone_number == phone_number).first())
+
         if user:
             result = {
-                "result": "error",
-                "status_code": 422,
-                'message': 'phone number already exists, try another one'
+                "status": "error",
+                "result": {
+                    'message': 'Phone Number already exists, try another one.'
+                }
             }
-            return result, http.client.OK
+            return result, http.client.CONFLICT
+
+        if not validators.email(args["email"]):
+            response = {
+                "status": "error",
+                "details": {
+                    "message": "Input a valid email address"
+                }
+            }
+            return response, http.client.BAD_REQUEST
 
         user = (UserModel.query.filter(
             UserModel.email == args['email']).first())
         if user:
             result = {
-                "result": "error",
-                "status_code": 422,
-                'message': 'email already exists, try another one'
+                "status": "error",
+                "result": {
+                    'message': 'Email already exists, try another one.'
+                }
             }
-            return result, http.client.OK
+            return result, http.client.CONFLICT
 
         new_user = UserModel(email=args['email'],
                              phone_number=args["phone_number"],
@@ -89,16 +131,19 @@ class UserCreate(Resource):
         except IntegrityError:
             db.session.rollback()
             result = {
-                "result": "error",
-                "status_code": 422,
-                'message':
-                'email or phone number already exists, try another one'
+                "status": "error",
+                "result": {
+                    'message':
+                    'Email or Phone Number already exists, try another one.'
+                }
             }
-            return result, http.client.OK
+            return result, http.client.CONFLICT
 
         result = admin_namespace.marshal(new_user, user_model)
 
-        return result, http.client.CREATED
+        response = {"status": "success", "result": result}
+
+        return response, http.client.CREATED
 
 
 @admin_namespace.route('/users/<int:user_id>/')
@@ -126,7 +171,7 @@ class UserDelete(Resource):
         return '', http.client.NO_CONTENT
 
 
-@admin_namespace.route('/users/checkemail/<string:email>')
+@admin_namespace.route('/users/check-email/<string:email>')
 class CheckUser(Resource):
     def get(self, email: str):
         """
@@ -134,26 +179,55 @@ class CheckUser(Resource):
         """
         args = authParser.parse_args()
 
+        if not validators.email(email):
+            response = {
+                "status": "error",
+                "details": {
+                    "message": "Input a valid email address"
+                }
+            }
+            return response, http.client.BAD_REQUEST
+
         user = UserModel.query.filter(UserModel.email == email).first()
 
         if not user:
             # The email doesnt exist
             return {"result": False}, http.client.OK
         user = admin_namespace.marshal(user, user_model)
-        return {
-            "result": "success",
-            "status_code": 200,
-            "result": user
-        }, http.client.OK
+        return {"status": "success", "result": user}, http.client.OK
 
 
-@admin_namespace.route('/users/checkphonenum/<string:phone_number>')
+@admin_namespace.route('/users/check-phone-number/<string:phone_number>')
 class CheckUser(Resource):
     def get(self, phone_number: str):
         """
         Checks if a phone number exists
         """
         args = authParser.parse_args()
+
+        first_three = phone_number[:3]
+
+        if first_three not in prefix_list and first_three != "+23":
+            response = {
+                "status": "error",
+                "details": {
+                    "message": "Input in a valid phone-number"
+                }
+            }
+            return response, http.client.BAD_REQUEST
+
+        if len(phone_number) == 11 or len(phone_number) == 14:
+            user = (UserModel.query.filter(
+                UserModel.phone_number == phone_number).first())
+
+            if not user:
+                response = {
+                    "status": "error",
+                    "detials": {
+                        "message": "User with phone number doesnt exist"
+                    }
+                }
+                return response, http.client.NOT_FOUND
 
         user = UserModel.query.filter(
             UserModel.phone_number == phone_number).first()
@@ -162,8 +236,4 @@ class CheckUser(Resource):
             # The email doesnt exist
             return {"result": False}, http.client.OK
         user = admin_namespace.marshal(user, user_model)
-        return {
-            "result": "success",
-            "status_code": 200,
-            "result": user
-        }, http.client.OK
+        return {"status": "success", "result": user}, http.client.OK

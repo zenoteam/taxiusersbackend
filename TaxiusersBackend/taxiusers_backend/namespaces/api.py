@@ -37,16 +37,13 @@ login_parser = api_namespace.parser()
 login_parser.add_argument('password', type=str, required=True, help='password')
 
 login_email_parser = login_parser.copy()
-login_email_parser.add_argument('email',
-                                type=str,
-                                required=False,
-                                help='email')
+login_email_parser.add_argument('email', type=str, required=True, help='email')
 
 login_phone_parser = login_parser.copy()
-login_parser.add_argument('phone_number',
-                          type=str,
-                          required=False,
-                          help='phone_number')
+login_phone_parser.add_argument('phone_number',
+                                type=str,
+                                required=True,
+                                help='phone_number')
 
 
 @api_namespace.route('/login-by-email/')
@@ -132,7 +129,7 @@ class UserLogin(Resource):
         """
         args = login_phone_parser.parse_args()
 
-        phone_number = args["phone"]
+        phone_number = args["phone_number"]
 
         first_three = phone_number[:3]
 
@@ -145,7 +142,61 @@ class UserLogin(Resource):
             }
             return response, http.client.BAD_REQUEST
 
-        if len(phone_number) != 11 or len(phone_number) != 14:
+        if len(phone_number) == 11 or len(phone_number) == 14:
+            user = (UserModel.query.filter(
+                UserModel.phone_number == phone_number).first())
+
+            if not user:
+                response = {
+                    "status": "error",
+                    "detials": {
+                        "message": "User with phone number doesnt exist"
+                    }
+                }
+                return response, http.client.NOT_FOUND
+
+            # Check the password
+            # REMEMBER, THIS IS NOT SAFE. DO NOT STORE PASSWORDS IN PLAIN
+            auth_user = bcrypt.check_password_hash(user.password,
+                                                   args['password'])
+
+            if not auth_user:
+                response = {
+                    "status": "error",
+                    "details": {
+                        "message": "Incorrect password"
+                    }
+                }
+
+                return response, http.client.UNAUTHORIZED
+
+            isFirstLogin = True if user.last_login_at is None else False
+
+            # update last login timestamp
+            user.last_login_at = datetime.utcnow()
+
+            # save update
+            db.session.add(user)
+            db.session.commit()
+
+            # Generate the header
+            tokenPayload = {'id': user.id}
+            tokenPayload["auth_id"] = user.auth_id
+            if user.role == 1 or user.role == 2:
+                tokenPayload['admin'] = user.role
+            header = generate_token_header(tokenPayload, config.PRIVATE_KEY)
+
+            response = {'Authorized': header}
+            if isFirstLogin:
+                response['firstLogin'] = 'true'
+            response["auth_id"] = user.auth_id
+            response["firebase_token"] = user.firebase_token
+
+            result = {"status": "success", "details": response}
+
+            return result, http.client.OK
+
+        else:
             response = {
                 "status": "error",
                 "details": {
@@ -153,58 +204,6 @@ class UserLogin(Resource):
                 }
             }
             return response, http.client.BAD_REQUEST
-
-        user = (UserModel.query.filter(
-            UserModel.phone_number == phone_number).first())
-
-        if not user:
-            response = {
-                "status": "error",
-                "detials": {
-                    "message": "User with phone number doesnt exist"
-                }
-            }
-            return response, http.client.NOT_FOUND
-
-        # Check the password
-        # REMEMBER, THIS IS NOT SAFE. DO NOT STORE PASSWORDS IN PLAIN
-        auth_user = bcrypt.check_password_hash(user.password, args['password'])
-
-        if not auth_user:
-            response = {
-                "status": "error",
-                "details": {
-                    "message": "Incorrect password"
-                }
-            }
-
-            return response, http.client.UNAUTHORIZED
-
-        isFirstLogin = True if user.last_login_at is None else False
-
-        # update last login timestamp
-        user.last_login_at = datetime.utcnow()
-
-        # save update
-        db.session.add(user)
-        db.session.commit()
-
-        # Generate the header
-        tokenPayload = {'id': user.id}
-        tokenPayload["auth_id"] = user.auth_id
-        if user.role == 1 or user.role == 2:
-            tokenPayload['admin'] = user.role
-        header = generate_token_header(tokenPayload, config.PRIVATE_KEY)
-
-        response = {'Authorized': header}
-        if isFirstLogin:
-            response['firstLogin'] = 'true'
-        response["auth_id"] = user.auth_id
-        response["firebase_token"] = user.firebase_token
-
-        result = {"status": "success", "details": response}
-
-        return result, http.client.OK
 
 
 @api_namespace.route('/verify/')
