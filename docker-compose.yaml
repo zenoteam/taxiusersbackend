@@ -1,95 +1,53 @@
-version: '3'
+version: "3.7"
 
 services:
-    # Development related
-    test-sqlite:
-        env_file: environment2.env
-        environment:
-            - PYTHONDONTWRITEBYTECODE=1
-        build:
-            dockerfile: docker/app/Dockerfile
-            context: .
-        entrypoint: pytest
-        volumes:
-            - ./TaxiusersBackend:/opt/code
+  # Development related
+  test-sqlite:
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+    build:
+      dockerfile: docker/app/Dockerfile
+      context: .
+    entrypoint: pytest
+    volumes:
+      - ./TaxiusersBackend:/opt/code
 
-    test-postgresql:
-        env_file: environment.env
-        environment:
-            - PYTHONDONTWRITEBYTECODE=1
-        build:
-            dockerfile: docker/app/Dockerfile
-            context: .
-        entrypoint: pytest
-        depends_on:
-            - db
-        volumes:
-            - ./TaxiusersBackend:/opt/code
+  test-postgresql:
+    env_file: environment.env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+    build:
+      dockerfile: docker/app/Dockerfile
+      context: .
+    entrypoint: pytest
+    depends_on:
+      - db
+    volumes:
+      - ./TaxiusersBackend:/opt/code
 
-    # Pipeline actions
-    test:
-        env_file: environment.env
-        environment:
-            - PYTHONDONTWRITEBYTECODE=1
-        build:
-            dockerfile: docker/app/Dockerfile
-            context: .
-        entrypoint: pytest
-        depends_on:
-            - db
+  db:
+    build:
+      context: .
+      dockerfile: ./docker/db/Dockerfile
+      args:
+        # These values should be in sync with environment
+        # for development. If you change them, you'll
+        # need to rebuild the container
+        - POSTGRES_DB=Taxiusers
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=somepassword
+        - POSTGRES_PORT=5432
+    ports:
+      - "5432:5432"
 
-    static-analysis:
-        build:
-            dockerfile: docker/app/Dockerfile
-            context: .
-        entrypoint: flake8
-
-    db:
-        build:
-            context: .
-            dockerfile: ./docker/db/Dockerfile
-            args:
-                # These values should be in sync with environment
-                # for development. If you change them, you'll
-                # need to rebuild the container
-                - POSTGRES_DB=taxiusers
-                - POSTGRES_USER=postgres
-                - POSTGRES_PASSWORD=somepassword
-                - POSTGRES_PORT=5432
-        volumes:
-            - db-data:/opt/data 
-
-    # Producion related
-    # Note that db-debug is the same as db, but it exposes locally
-    # port 5432 to access PostgreSQL
-    db-debug:
-        build:
-            context: .
-            dockerfile: ./docker/db/Dockerfile
-            args:
-                # These values should be in sync with environment
-                # for development. If you change them, you'll
-                # need to rebuild the container
-                - POSTGRES_DB=taxiusers
-                - POSTGRES_USER=postgres
-                - POSTGRES_PASSWORD=somepassword
-                - POSTGRES_PORT=5432
-        ports:
-            - "6379:6379"
-    
-    redisdb:
-        image: redis
-
-    server:
-        env_file: environment.env
-        image: taxiusers_server
-        build:
-            context: .
-            dockerfile: docker/app/Dockerfile
-        ports:
-            - "8000:8000"
-        depends_on:
-            - db
-
-volumes:
-  db-data:
+  # Producion related
+  server:
+    env_file: environment.env
+    image: Taxiusers_server
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
