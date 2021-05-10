@@ -56,7 +56,8 @@ class UserLogin(Resource):
         """
         args = login_email_parser.parse_args()
 
-        email = args["email"]
+        email: str = args["email"]
+        email = email.lower()
 
         if not validators.email(email):
             response = {
@@ -119,7 +120,7 @@ class UserLogin(Resource):
         return result, http.client.OK
 
 
-@api_namespace.route('/login-by-phone-no/')
+@api_namespace.route('/login-by-phone-number/')
 class UserLogin(Resource):
     @api_namespace.doc('login')
     @api_namespace.expect(login_phone_parser)
@@ -254,11 +255,11 @@ change_pw_parser.add_argument('new_password',
                               help='new password')
 
 
-@api_namespace.route('/password/change/')
+@api_namespace.route('/user/password/')
 class ChangePwd(Resource):
     @api_namespace.doc('change_password')
     @api_namespace.expect(change_pw_parser)
-    def post(self):
+    def put(self):
         """
         Change a user password
         """
@@ -272,7 +273,12 @@ class ChangePwd(Resource):
         auth_user = bcrypt.check_password_hash(user.password, old_password)
 
         if not auth_user:
-            response = {"status": "error", "message": "Incorrect Old Password"}
+            response = {
+                "status": "error",
+                "details": {
+                    "message": "Incorrect Old Password"
+                }
+            }
             return response, http.client.UNAUTHORIZED
 
         user.password = bcrypt.generate_password_hash(
@@ -281,7 +287,7 @@ class ChangePwd(Resource):
         db.session.add(user)
         db.session.commit()
 
-        return http.client.OK
+        return {"status": "sucsess", "details": {}}, http.client.OK
 
 
 update_pw_parser = authentication_parser.copy()
@@ -295,7 +301,7 @@ update_pw_parser.add_argument('new_password',
                               help='The new password')
 
 
-@api_namespace.route('/password/update/')
+@api_namespace.route('/user/password/update/')
 class UpdatePwd(Resource):
     @api_namespace.doc('update_password')
     @api_namespace.expect(update_pw_parser)
@@ -325,7 +331,7 @@ class UpdatePwd(Resource):
         db.session.add(user)
         db.session.commit()
 
-        return http.client.OK
+        return {"status": "sucsess", "details": {}}, http.client.OK
 
 
 dateQuery_parser = authentication_parser.copy()
@@ -370,7 +376,7 @@ class UsersDateQuery(Resource):
 
             start_date = start_date + timedelta(days=1)
 
-        return result
+        return {"status": "sucsess", "details": result}
 
 
 monthQuery_parser = authentication_parser.copy()
@@ -410,7 +416,7 @@ class UsersMonthQuery(Resource):
 
             result[f'{month}'] = user[0][0]
 
-        return result
+        return {"status": "sucsess", "details": result}
 
 
 @api_namespace.route('/stat/sumquery/')
@@ -425,4 +431,4 @@ class UsersSummaryQuery(Resource):
         authentication_header_parser(args['Authorization'])
         user = (UserModel.query.count())
 
-        return user
+        return {"status": "sucsess", "details": user}

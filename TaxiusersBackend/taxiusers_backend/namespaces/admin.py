@@ -74,18 +74,15 @@ class UserCreate(Resource):
             }
             return response, http.client.BAD_REQUEST
 
-        if len(phone_number) == 11 or len(phone_number) == 14:
-            user = (UserModel.query.filter(
-                UserModel.phone_number == phone_number).first())
+        if not (len(phone_number) == 11 or len(phone_number) == 14):
 
-            if not user:
-                response = {
-                    "status": "error",
-                    "detials": {
-                        "message": "User with phone number doesnt exist"
-                    }
+            response = {
+                "status": "error",
+                "details": {
+                    "message": "The lenth of number passed is invalid"
                 }
-                return response, http.client.NOT_FOUND
+            }
+            return response, http.client.BAD_REQUEST
 
         user = (UserModel.query.filter(
             UserModel.phone_number == phone_number).first())
@@ -119,7 +116,8 @@ class UserCreate(Resource):
             }
             return result, http.client.CONFLICT
 
-        new_user = UserModel(email=args['email'],
+        email = args['email'].lower()
+        new_user = UserModel(email=email,
                              phone_number=args["phone_number"],
                              password=args['password'],
                              role=args['role'],
@@ -171,7 +169,7 @@ class UserDelete(Resource):
         return '', http.client.NO_CONTENT
 
 
-@admin_namespace.route('/users/check-email/<string:email>')
+@admin_namespace.route('/users/email/<string:email>')
 class CheckUser(Resource):
     def get(self, email: str):
         """
@@ -192,12 +190,22 @@ class CheckUser(Resource):
 
         if not user:
             # The email doesnt exist
-            return {"result": False}, http.client.OK
+            return {
+                "status": "error",
+                "details": {
+                    "message": "Not Found"
+                }
+            }, http.client.NOT_FOUND
         user = admin_namespace.marshal(user, user_model)
-        return {"status": "success", "result": user}, http.client.OK
+        return {
+            "status": "success",
+            "details": {
+                "result": user
+            }
+        }, http.client.OK
 
 
-@admin_namespace.route('/users/check-phone-number/<string:phone_number>')
+@admin_namespace.route('/users/phone-number/<string:phone_number>')
 class CheckUser(Resource):
     def get(self, phone_number: str):
         """
@@ -234,6 +242,16 @@ class CheckUser(Resource):
 
         if not user:
             # The email doesnt exist
-            return {"result": False}, http.client.OK
+            return {
+                "status": "error",
+                "details": {
+                    "message": "Not Found"
+                }
+            }, http.client.OK
         user = admin_namespace.marshal(user, user_model)
-        return {"status": "success", "result": user}, http.client.OK
+        return {
+            "status": "success",
+            "details": {
+                "result": user
+            }
+        }, http.client.OK
