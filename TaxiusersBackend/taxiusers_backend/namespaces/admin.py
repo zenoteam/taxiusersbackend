@@ -13,23 +13,26 @@ model = {
     'id': fields.Integer(),
     'auth_id': fields.String(),
     'email': fields.String(),
-    'phoneNumber': fields.String(),
+    'phone_number': fields.String(),
     'role': fields.Integer(),
     # DO NOT RETURN THE PASSWORD!!!
-    'lastLoginAt': fields.DateTime(),
-    'createdAt': fields.DateTime(),
-    'firebaseToken': fields.String()
+    'last_login_at': fields.DateTime(),
+    'created_at': fields.DateTime(),
+    'firebase_token': fields.String()
 }
 user_model = admin_namespace.model('User', model)
 
 user_parser = admin_namespace.parser()
 user_parser.add_argument('email', type=str, required=True, help='email')
-user_parser.add_argument('phoneNumber', type=str, required=True, help='phoneNumber')
+user_parser.add_argument('phone_number',
+                         type=str,
+                         required=True,
+                         help='phone_number')
 user_parser.add_argument('password', type=str, required=True, help='Password')
-user_parser.add_argument('firebaseToken',
+user_parser.add_argument('firebase_token',
                          type=str,
                          required=False,
-                         help='firebaseToken')
+                         help='firebase_token')
 user_parser.add_argument(
     'role',
     type=int,
@@ -55,32 +58,42 @@ class UserCreate(Resource):
         """
         args = user_parser.parse_args()
         user = (UserModel.query.filter(
-                UserModel.phoneNumber == args['phoneNumber']).first())
+            UserModel.phone_number == args['phone_number']).first())
         if user:
-            result = {"result": "error", "status_code": 422,
-                'message': 'phone number already exists, try another one'}
+            result = {
+                "result": "error",
+                "status_code": 422,
+                'message': 'phone number already exists, try another one'
+            }
             return result, http.client.OK
-        
+
         user = (UserModel.query.filter(
-                UserModel.email == args['email']).first())
+            UserModel.email == args['email']).first())
         if user:
-            result = {"result": "error", "status_code": 422,
-                'message': 'email already exists, try another one'}
+            result = {
+                "result": "error",
+                "status_code": 422,
+                'message': 'email already exists, try another one'
+            }
             return result, http.client.OK
 
         new_user = UserModel(email=args['email'],
-                             phoneNumber=args["phoneNumber"],
+                             phone_number=args["phone_number"],
                              password=args['password'],
                              role=args['role'],
-                             createdAt=datetime.utcnow(),
-                             firebaseToken=args['firebaseToken'])
+                             created_at=datetime.utcnow(),
+                             firebase_token=args['firebase_token'])
         db.session.add(new_user)
         try:
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            result = {"result": "error", "status_code": 422,
-                'message': 'email or phone number already exists, try another one'}
+            result = {
+                "result": "error",
+                "status_code": 422,
+                'message':
+                'email or phone number already exists, try another one'
+            }
             return result, http.client.OK
 
         result = admin_namespace.marshal(new_user, user_model)
@@ -88,18 +101,18 @@ class UserCreate(Resource):
         return result, http.client.CREATED
 
 
-@admin_namespace.route('/users/<int:userId>/')
+@admin_namespace.route('/users/<int:user_id>/')
 class UserDelete(Resource):
     @admin_namespace.expect(authParser)
     @admin_namespace.doc('delete_user')
-    def delete(self, userId: int):
+    def delete(self, user_id: int):
         """
         Delete a user
         """
         args = authParser.parse_args()
         authentication_header_parser(args['Authorization'])
 
-        user = UserModel.query.get(userId)
+        user = UserModel.query.get(user_id)
         if not user:
             # The user is not present
             return '', http.client.NO_CONTENT
@@ -127,21 +140,30 @@ class CheckUser(Resource):
             # The email doesnt exist
             return {"result": False}, http.client.OK
         user = admin_namespace.marshal(user, user_model)
-        return {"result": "success", "status_code": 200, "result": user}, http.client.OK
-    
+        return {
+            "result": "success",
+            "status_code": 200,
+            "result": user
+        }, http.client.OK
 
-@admin_namespace.route('/users/checkphonenum/<string:phoneNumber>')
+
+@admin_namespace.route('/users/checkphonenum/<string:phone_number>')
 class CheckUser(Resource):
-    def get(self, phoneNumber: str):
+    def get(self, phone_number: str):
         """
         Checks if a phone number exists
         """
         args = authParser.parse_args()
 
-        user = UserModel.query.filter(UserModel.phoneNumber == phoneNumber).first()
+        user = UserModel.query.filter(
+            UserModel.phone_number == phone_number).first()
 
         if not user:
             # The email doesnt exist
             return {"result": False}, http.client.OK
         user = admin_namespace.marshal(user, user_model)
-        return {"result": "success", "status_code": 200, "result": user}, http.client.OK
+        return {
+            "result": "success",
+            "status_code": 200,
+            "result": user
+        }, http.client.OK
