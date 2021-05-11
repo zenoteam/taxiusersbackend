@@ -146,6 +146,9 @@ class UserLogin(Resource):
             return response, http.client.BAD_REQUEST
 
         if len(phone_number) == 11 or len(phone_number) == 14:
+
+            if first_three == "+23":
+                phone_number = "0" + phone_number[4:]
             user = (UserModel.query.filter(
                 UserModel.phone_number == phone_number).first())
 

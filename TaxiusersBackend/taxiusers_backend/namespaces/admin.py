@@ -86,6 +86,9 @@ class UserCreate(Resource):
             }
             return response, http.client.BAD_REQUEST
 
+        if first_three == "+23":
+            phone_number = "0" + phone_number[4:]
+
         user = (UserModel.query.filter(
             UserModel.phone_number == phone_number).first())
 
@@ -120,7 +123,7 @@ class UserCreate(Resource):
 
         email = args['email'].lower()
         new_user = UserModel(email=email,
-                             phone_number=args["phone_number"],
+                             phone_number=phone_number,
                              password=args['password'],
                              role=args['role'],
                              created_at=datetime.utcnow(),
